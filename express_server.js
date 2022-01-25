@@ -1,6 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const res = require('express/lib/response');
+const { render } = require('express/lib/response');
 
 const app = express();
 const port = 8080;
@@ -46,15 +47,27 @@ app.get('/urls/new', (req, res) => {
   res.render('urls_new');
 })
 
+app.post('/urls', (req, res) => {
+  const shortURL = generateRandomString();
+  urlDatabase[shortURL] = req.body.longURL;
+  console.log(urlDatabase);
+  res.redirect(`/urls/${shortURL}`)
+  // console.log(req.body);
+  // res.send('ok');
+})
+
 app.get('/urls/:shortURL', (req, res) => {
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  console.log(urlDatabase);
   res.render('urls_show', templateVars);
 })
 
-app.post('/urls', (req, res) => {
-  console.log(req.body);
-  res.send('ok');
+
+app.get('/u/:shortURL', (req, res) => {
+  const longRUL = urlDatabase[req.params.shortURL];
+  res.redirect(longRUL);
 })
+
 
 app.listen(port, () => {
   console.log(`example app listening on port ${port}`);
