@@ -65,10 +65,14 @@ app.get('/urls/:shortURL', (req, res) => {
   res.render('urls_show', templateVars);
 })
 
+app.post('/urls/:shortURL', (req, res) => {
+  urlDatabase[req.params.shortURL] = req.body.updatedURL;
+  res.redirect('/urls');
+})
 
 app.get('/u/:shortURL', (req, res) => {
-  const longRUL = urlDatabase[req.params.shortURL];
-  res.redirect(longRUL);
+  const longURL = urlDatabase[req.params.shortURL];
+  res.redirect(longURL);
 })
 
 //click the delete button and redirect to the /urls page
