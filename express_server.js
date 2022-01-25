@@ -3,10 +3,13 @@ const bodyParser = require('body-parser');
 const res = require('express/lib/response');
 const { render } = require('express/lib/response');
 
+//create the server
 const app = express();
 const port = 8080;
 
+//set the view engine to ejs
 app.set('view engine', 'ejs')
+//body parse the content
 app.use(bodyParser.urlencoded({ extended: true }));
 
 const urlDatabase = {
@@ -14,6 +17,7 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 }
 
+//get a shorten URL string
 function generateRandomString() {
   let strPool = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     + "0123456789"
@@ -26,6 +30,7 @@ function generateRandomString() {
   return result;
 }
 
+//get the home page show the hello
 app.get('/', (req, res) => {
   res.send('Hello!')
 });
@@ -47,18 +52,16 @@ app.get('/urls/new', (req, res) => {
   res.render('urls_new');
 })
 
+//after the submit in /urls/new, generate a random shortURL, put it in the urlDatabase with the correlated longURL.
+//then redirect to the /urls/:shortURL
 app.post('/urls', (req, res) => {
   const shortURL = generateRandomString();
   urlDatabase[shortURL] = req.body.longURL;
-  console.log(urlDatabase);
   res.redirect(`/urls/${shortURL}`)
-  // console.log(req.body);
-  // res.send('ok');
 })
 
 app.get('/urls/:shortURL', (req, res) => {
   const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
-  console.log(urlDatabase);
   res.render('urls_show', templateVars);
 })
 
