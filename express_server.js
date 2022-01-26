@@ -1,5 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
+const cookieParser = require('cookie-parser')
 const res = require('express/lib/response');
 const { render } = require('express/lib/response');
 
@@ -11,10 +12,17 @@ const port = 8080;
 app.set('view engine', 'ejs')
 //body parse the content
 app.use(bodyParser.urlencoded({ extended: true }));
+//cookie parse 
+app.use(cookieParser());
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
+}
+
+const templateVars = {
+  username: null,
+  urls: urlDatabase
 }
 
 //get a shorten URL string
@@ -44,7 +52,7 @@ app.get('/hello', (req, res) => {
 })
 
 app.get("/urls", (req, res) => {
-  const templateVars = { urls: urlDatabase };
+  templateVars.username = req.cookies['username']
   res.render("urls_index", templateVars);
 });
 
@@ -61,8 +69,8 @@ app.post('/urls', (req, res) => {
 })
 
 app.get('/urls/:shortURL', (req, res) => {
-  const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
-  res.render('urls_show', templateVars);
+  const temp = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  res.render('urls_show', temp);
 })
 
 app.post('/urls/:shortURL', (req, res) => {
@@ -78,6 +86,16 @@ app.get('/u/:shortURL', (req, res) => {
 //click the delete button and redirect to the /urls page
 app.post('/urls/:shortURL/delete', (req, res) => {
   delete urlDatabase[req.params.shortURL];
+  res.redirect('/urls');
+})
+
+app.post('/login', (req, res) => {
+  res.cookie('username', req.body.username);
+  res.redirect('/urls');
+})
+
+app.post('/logout', (req, res) => {
+  res.clearCookie('username');
   res.redirect('/urls');
 })
 
