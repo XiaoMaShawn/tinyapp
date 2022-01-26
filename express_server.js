@@ -1,8 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser')
-const res = require('express/lib/response');
-const { render } = require('express/lib/response');
+// const res = require('express/lib/response');
+// const { render } = require('express/lib/response');
 
 //create the server
 const app = express();
@@ -57,7 +57,9 @@ app.get("/urls", (req, res) => {
 });
 
 app.get('/urls/new', (req, res) => {
-  res.render('urls_new');
+  // res.render('urls_new');
+  res.render('urls_new', templateVars);
+
 })
 
 //after the submit in /urls/new, generate a random shortURL, put it in the urlDatabase with the correlated longURL.
@@ -69,8 +71,11 @@ app.post('/urls', (req, res) => {
 })
 
 app.get('/urls/:shortURL', (req, res) => {
-  const temp = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
-  res.render('urls_show', temp);
+  // const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
+  // res.render('urls_show', templateVars);
+  templateVars.shortURL = req.params.shortURL;
+  templateVars.longURL = urlDatabase[req.params.shortURL];
+  res.render('urls_show', templateVars);
 })
 
 app.post('/urls/:shortURL', (req, res) => {
