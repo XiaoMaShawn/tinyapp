@@ -20,9 +20,27 @@ const urlDatabase = {
   "9sm5xK": "http://www.google.com"
 }
 
-const templateVars = {
-  username: null,
-  urls: urlDatabase
+const users = {
+  "123": {
+    id: "123",
+    email: "lulu@fancy.com",
+    password: "purple"
+  },
+  "456": {
+    id: "456",
+    email: "him@tell.com",
+    password: "green"
+  }
+}
+
+//check the users with email
+function checkEmail(email, users) {
+  for (let user in users) {
+    if (email === users[user].email) {
+      return false;
+    }
+  }
+  return true;
 }
 
 //get a shorten URL string
@@ -52,12 +70,17 @@ app.get('/hello', (req, res) => {
 })
 
 app.get("/urls", (req, res) => {
-  templateVars.username = req.cookies['username']
+  const templateVars = {
+    user: users[req.cookies['user_id']],
+    urls: urlDatabase
+  };
   res.render("urls_index", templateVars);
 });
 
 app.get('/urls/new', (req, res) => {
-  // res.render('urls_new');
+  const templateVars = {
+    user: users[req.cookies['user_id']],
+  };
   res.render('urls_new', templateVars);
 
 })
@@ -71,11 +94,15 @@ app.post('/urls', (req, res) => {
 })
 
 app.get('/urls/:shortURL', (req, res) => {
-  // const templateVars = { shortURL: req.params.shortURL, longURL: urlDatabase[req.params.shortURL] };
-  // res.render('urls_show', templateVars);
-  templateVars.shortURL = req.params.shortURL;
-  templateVars.longURL = urlDatabase[req.params.shortURL];
+  const templateVars = {
+    user: users[req.cookies['user_id']],
+    shortURL: req.params.shortURL,
+    longURL: urlDatabase[req.params.shortURL]
+  };
   res.render('urls_show', templateVars);
+  // templateVars.shortURL = req.params.shortURL;
+  // templateVars.longURL = urlDatabase[req.params.shortURL];
+  // res.render('urls_show', templateVars);
 })
 
 app.post('/urls/:shortURL', (req, res) => {
@@ -95,13 +122,36 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 })
 
 app.post('/login', (req, res) => {
-  res.cookie('username', req.body.username);
+  res.cookie('user_id', users.userID);
   res.redirect('/urls');
 })
 
 app.post('/logout', (req, res) => {
-  res.clearCookie('username');
+  res.clearCookie('user_id');
   res.redirect('/urls');
+})
+
+app.get('/register', (req, res) => {
+  res.render('registration_form')
+})
+
+app.post('/register', (req, res) => {
+  const email = req.body.email;
+  const password = req.body.password;
+  const userID = generateRandomString();
+  if (!email || !password) {
+    res.status(404).send('email or password can not be empty').end();
+  } else if (checkEmail(email, users) === false) {
+    res.status(404).send('your email has been registered').end();
+  } else {
+    users[userID] = {
+      id: userID,
+      email: email,
+      password: password
+    }
+    res.cookie('user_id', users[userID].id);
+    res.redirect('/urls');
+  }
 })
 
 
