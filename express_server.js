@@ -2,6 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser');
 const bcrypt = require('bcryptjs');
+const cookieSession = require('cookie-session')
 
 
 //create the server
@@ -13,7 +14,13 @@ app.set('view engine', 'ejs')
 //body parse the content
 app.use(bodyParser.urlencoded({ extended: true }));
 //cookie parse 
-app.use(cookieParser());
+// app.use(cookieParser());
+
+// cookie-session
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2']
+}))
 
 // const urlDatabase = {
 //   "b2xVn2": "http://www.lighthouselabs.ca",
@@ -102,10 +109,12 @@ app.get('/hello', (req, res) => {
 
 app.get("/urls", (req, res) => {
   const templateVars = {
-    user: users[req.cookies['user_id']]
+    // user: users[req.cookies['user_id']]
+    user: users[req.session['user_id']]
+
   }
-  if (req.cookies['user_id']) {
-    const userURL = urlsForUser(req.cookies['user_id'], urlDatabase)
+  if (req.session['user_id']) {
+    const userURL = urlsForUser(req.session['user_id'], urlDatabase)
     templateVars.urls = userURL
     return res.render("urls_index", templateVars);
   }
@@ -114,7 +123,7 @@ app.get("/urls", (req, res) => {
 
 app.get('/urls/new', (req, res) => {
   const templateVars = {
-    user: users[req.cookies['user_id']],
+    user: users[req.session['user_id']],
   };
   if (!templateVars.user) {
     return res.redirect('/urls')
@@ -127,7 +136,8 @@ app.get('/urls/new', (req, res) => {
 //then redirect to the /urls/:shortURL
 app.post('/urls', (req, res) => {
   const templateVars = {
-    user: users[req.cookies['user_id']],
+    // user: users[req.cookies['user_id']]
+    user: users[req.session['user_id']]
   };
   if (!templateVars.user) {
     return res.send('please log in to shorten URLs')
@@ -142,10 +152,11 @@ app.post('/urls', (req, res) => {
 
 app.get('/urls/:shortURL', (req, res) => {
   const templateVars = {
-    user: users[req.cookies['user_id']]
+    // user: users[req.cookies['user_id']]
+    user: users[req.session['user_id']]
   }
-  if (req.cookies['user_id']) {
-    const userURL = urlsForUser(req.cookies['user_id'], urlDatabase)
+  if (req.session['user_id']) {
+    const userURL = urlsForUser(req.session['user_id'], urlDatabase)
     templateVars.shortURL = req.params.shortURL;
     templateVars.longURL = userURL[req.params.shortURL].longURL
     return res.render('urls_show', templateVars);
@@ -183,23 +194,25 @@ app.post('/login', (req, res) => {
   }
 
   const user = getUserByEmail(email);
-  console.log(user);
   if (!bcrypt.compareSync(password, user.password)) {
     return res.status(403).send('your password is wrong')
   }
-  res.cookie('user_id', user.id);
+  // res.cookie('user_id', user.id);
+  req.session['user_id'] = user.id;
   res.redirect('/urls');
 
 })
 
 app.post('/logout', (req, res) => {
-  res.clearCookie('user_id');
+  // res.clearCookie('user_id');
+  req.session['user_id'] = null;
   res.redirect('/urls');
 })
 
 app.get('/register', (req, res) => {
   const templateVars = {
-    user: users[req.cookies['user_id']],
+    // user: users[req.cookies['user_id']]
+    user: users[req.session['user_id']]
   };
   if (!templateVars.user) {
     return res.render('registration_form', templateVars)
@@ -221,14 +234,15 @@ app.post('/register', (req, res) => {
       email: email,
       password: password
     }
-    res.cookie('user_id', users[userID].id);
+    // res.cookie('user_id', users[userID].id);
+    req.session['user_id'] = users[userID].id;
     res.redirect('/urls');
   }
 })
 
 app.get('/login', (req, res) => {
   const templateVars = {
-    user: users[req.cookies['user_id']],
+    user: users[req.session['user_id']],
   };
   if (!templateVars.user) {
     return res.render('loginpage', templateVars)
