@@ -121,26 +121,29 @@ app.post('/urls/:shortURL/delete', (req, res) => {
   res.redirect('/urls');
 })
 
+const getUserByEmail = (email) => {
+  for (let user in users) {
+    if (email === users[user].email) {
+      return users[user];
+    }
+  }
+}
+
 app.post('/login', (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  if (existEmail(email, users) === false) {
-    res.status(403).send('This email hasn\'t been registered')
-  } else {
-    let checkKey;
-    for (let user in users) {
-      if (email === users[user].email) {
-        checkKey = user;
-        break;
-      }
-    }
-    if (password !== users[checkKey].password) {
-      res.status(403).send('your password is wrong')
-    } else {
-      res.cookie('user_id', users[checkKey].id);
-      res.redirect('/urls');
-    }
+  if (!existEmail(email, users)) {
+    return res.status(403).send('This email hasn\'t been registered')
   }
+
+  const user = getUserByEmail(email);
+
+  if (password !== user.password) {
+    return res.status(403).send('your password is wrong')
+  }
+  res.cookie('user_id', user.id);
+  res.redirect('/urls');
+
 })
 
 app.post('/logout', (req, res) => {
@@ -149,7 +152,10 @@ app.post('/logout', (req, res) => {
 })
 
 app.get('/register', (req, res) => {
-  res.render('registration_form')
+  const templateVars = {
+    user: users[req.cookies['user_id']],
+  };
+  res.render('registration_form', templateVars)
 })
 
 app.post('/register', (req, res) => {
@@ -172,7 +178,10 @@ app.post('/register', (req, res) => {
 })
 
 app.get('/login', (req, res) => {
-  res.render('loginpage')
+  const templateVars = {
+    user: users[req.cookies['user_id']],
+  };
+  res.render('loginpage', templateVars)
 })
 
 app.listen(port, () => {
