@@ -34,13 +34,13 @@ const users = {
 }
 
 //check the users with email
-function checkEmail(email, users) {
+function existEmail(email, users) {
   for (let user in users) {
     if (email === users[user].email) {
-      return false;
+      return true;
     }
   }
-  return true;
+  return false;
 }
 
 //get a shorten URL string
@@ -122,8 +122,25 @@ app.post('/urls/:shortURL/delete', (req, res) => {
 })
 
 app.post('/login', (req, res) => {
-  res.cookie('user_id', users.userID);
-  res.redirect('/urls');
+  const email = req.body.email;
+  const password = req.body.password;
+  if (existEmail(email, users) === false) {
+    res.status(403).send('This email hasn\'t been registered')
+  } else {
+    let checkKey;
+    for (let user in users) {
+      if (email === users[user].email) {
+        checkKey = user;
+        break;
+      }
+    }
+    if (password !== users[checkKey].password) {
+      res.status(403).send('your password is wrong')
+    } else {
+      res.cookie('user_id', users[checkKey].id);
+      res.redirect('/urls');
+    }
+  }
 })
 
 app.post('/logout', (req, res) => {
@@ -141,7 +158,7 @@ app.post('/register', (req, res) => {
   const userID = generateRandomString();
   if (!email || !password) {
     res.status(404).send('email or password can not be empty').end();
-  } else if (checkEmail(email, users) === false) {
+  } else if (existEmail(email, users)) {
     res.status(404).send('your email has been registered').end();
   } else {
     users[userID] = {
@@ -154,6 +171,9 @@ app.post('/register', (req, res) => {
   }
 })
 
+app.get('/login', (req, res) => {
+  res.render('loginpage')
+})
 
 app.listen(port, () => {
   console.log(`example app listening on port ${port}`);
