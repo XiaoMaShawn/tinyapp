@@ -1,6 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser')
+const cookieParser = require('cookie-parser');
+const bcrypt = require('bcryptjs');
+
 
 //create the server
 const app = express();
@@ -33,12 +35,12 @@ const users = {
   "123": {
     id: "123",
     email: "lulu@fancy.com",
-    password: "purple"
+    password: bcrypt.hashSync("purple", 10)
   },
   "456": {
     id: "456",
     email: "him@tell.com",
-    password: "green"
+    password: bcrypt.hashSync("green", 10)
   }
 }
 
@@ -181,8 +183,8 @@ app.post('/login', (req, res) => {
   }
 
   const user = getUserByEmail(email);
-
-  if (password !== user.password) {
+  console.log(user);
+  if (!bcrypt.compareSync(password, user.password)) {
     return res.status(403).send('your password is wrong')
   }
   res.cookie('user_id', user.id);
@@ -207,7 +209,7 @@ app.get('/register', (req, res) => {
 
 app.post('/register', (req, res) => {
   const email = req.body.email;
-  const password = req.body.password;
+  const password = bcrypt.hashSync(req.body.password, 10);
   const userID = generateRandomString();
   if (!email || !password) {
     return res.status(404).send('email or password can not be empty');
