@@ -1,8 +1,6 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cookieParser = require('cookie-parser')
-// const res = require('express/lib/response');
-// const { render } = require('express/lib/response');
 
 //create the server
 const app = express();
@@ -56,6 +54,14 @@ function generateRandomString() {
   return result;
 }
 
+const getUserByEmail = (email) => {
+  for (let user in users) {
+    if (email === users[user].email) {
+      return users[user];
+    }
+  }
+}
+
 //get the home page show the hello
 app.get('/', (req, res) => {
   res.send('Hello!')
@@ -100,9 +106,6 @@ app.get('/urls/:shortURL', (req, res) => {
     longURL: urlDatabase[req.params.shortURL]
   };
   res.render('urls_show', templateVars);
-  // templateVars.shortURL = req.params.shortURL;
-  // templateVars.longURL = urlDatabase[req.params.shortURL];
-  // res.render('urls_show', templateVars);
 })
 
 app.post('/urls/:shortURL', (req, res) => {
@@ -121,13 +124,7 @@ app.post('/urls/:shortURL/delete', (req, res) => {
   res.redirect('/urls');
 })
 
-const getUserByEmail = (email) => {
-  for (let user in users) {
-    if (email === users[user].email) {
-      return users[user];
-    }
-  }
-}
+
 
 app.post('/login', (req, res) => {
   const email = req.body.email;
