@@ -13,10 +13,21 @@ app.use(bodyParser.urlencoded({ extended: true }));
 //cookie parse 
 app.use(cookieParser());
 
+// const urlDatabase = {
+//   "b2xVn2": "http://www.lighthouselabs.ca",
+//   "9sm5xK": "http://www.google.com"
+// }
+
 const urlDatabase = {
-  "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
-}
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW"
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW"
+  }
+};
 
 const users = {
   "123": {
@@ -29,6 +40,18 @@ const users = {
     email: "him@tell.com",
     password: "green"
   }
+}
+
+function urlsForUser(id, urls) {
+  let userURL = {};
+  for (let url in urls) {
+    if (urls[url].userID === id) {
+      userURL[url] = {
+        longURL: urls[url].longURL
+      }
+    }
+  }
+  return userURL;
 }
 
 //check the users with email
@@ -77,45 +100,69 @@ app.get('/hello', (req, res) => {
 
 app.get("/urls", (req, res) => {
   const templateVars = {
-    user: users[req.cookies['user_id']],
-    urls: urlDatabase
-  };
-  res.render("urls_index", templateVars);
+    user: users[req.cookies['user_id']]
+  }
+  if (req.cookies['user_id']) {
+    const userURL = urlsForUser(req.cookies['user_id'], urlDatabase)
+    templateVars.urls = userURL
+    return res.render("urls_index", templateVars);
+  }
+  res.render('pleaseloginfirst', templateVars)
 });
 
 app.get('/urls/new', (req, res) => {
   const templateVars = {
     user: users[req.cookies['user_id']],
   };
-  res.render('urls_new', templateVars);
+  if (!templateVars.user) {
+    return res.redirect('/urls')
+  }
+  return res.render('urls_new', templateVars);
 
 })
 
 //after the submit in /urls/new, generate a random shortURL, put it in the urlDatabase with the correlated longURL.
 //then redirect to the /urls/:shortURL
 app.post('/urls', (req, res) => {
+  const templateVars = {
+    user: users[req.cookies['user_id']],
+  };
+  if (!templateVars.user) {
+    return res.send('please log in to shorten URLs')
+  }
   const shortURL = generateRandomString();
-  urlDatabase[shortURL] = req.body.longURL;
-  res.redirect(`/urls/${shortURL}`)
+  urlDatabase[shortURL] = {
+    longURL: req.body.longURL,
+    userID: templateVars.user.id
+  }
+  return res.redirect(`/urls/${shortURL}`)
 })
 
 app.get('/urls/:shortURL', (req, res) => {
   const templateVars = {
-    user: users[req.cookies['user_id']],
-    shortURL: req.params.shortURL,
-    longURL: urlDatabase[req.params.shortURL]
-  };
-  res.render('urls_show', templateVars);
+    user: users[req.cookies['user_id']]
+  }
+  if (req.cookies['user_id']) {
+    const userURL = urlsForUser(req.cookies['user_id'], urlDatabase)
+    templateVars.shortURL = req.params.shortURL;
+    templateVars.longURL = userURL[req.params.shortURL].longURL
+    return res.render('urls_show', templateVars);
+  }
+
 })
 
 app.post('/urls/:shortURL', (req, res) => {
-  urlDatabase[req.params.shortURL] = req.body.updatedURL;
-  res.redirect('/urls');
+  urlDatabase[req.params.shortURL].longURL = req.body.updatedURL;
+  return res.redirect('/urls');
 })
 
 app.get('/u/:shortURL', (req, res) => {
-  const longURL = urlDatabase[req.params.shortURL];
-  res.redirect(longURL);
+  if (urlDatabase[req.params.shortURL]) {
+    const longURL = urlDatabase[req.params.shortURL].longURL;
+    // return res.redirect(`https://${longURL}`);
+    return res.redirect(longURL);
+  }
+  res.send('the shortURL is invalid');
 })
 
 //click the delete button and redirect to the /urls page
@@ -152,7 +199,10 @@ app.get('/register', (req, res) => {
   const templateVars = {
     user: users[req.cookies['user_id']],
   };
-  res.render('registration_form', templateVars)
+  if (!templateVars.user) {
+    return res.render('registration_form', templateVars)
+  }
+  res.redirect('/urls');
 })
 
 app.post('/register', (req, res) => {
@@ -160,9 +210,9 @@ app.post('/register', (req, res) => {
   const password = req.body.password;
   const userID = generateRandomString();
   if (!email || !password) {
-    res.status(404).send('email or password can not be empty').end();
+    return res.status(404).send('email or password can not be empty');
   } else if (existEmail(email, users)) {
-    res.status(404).send('your email has been registered').end();
+    return res.status(404).send('your email has been registered');
   } else {
     users[userID] = {
       id: userID,
@@ -178,7 +228,10 @@ app.get('/login', (req, res) => {
   const templateVars = {
     user: users[req.cookies['user_id']],
   };
-  res.render('loginpage', templateVars)
+  if (!templateVars.user) {
+    return res.render('loginpage', templateVars)
+  }
+  res.redirect('/urls');
 })
 
 app.listen(port, () => {
