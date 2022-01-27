@@ -2,7 +2,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const bcrypt = require('bcryptjs');
 const cookieSession = require('cookie-session')
-const { getUserByEmail } = require('./helpers')
+const { getUserByEmail, existEmail, urlsForUser, generateRandomString } = require('./helpers')
 
 
 //create the server
@@ -19,6 +19,7 @@ app.use(cookieSession({
   keys: ['key1', 'key2']
 }))
 
+//example urlDatabase
 const urlDatabase = {
   b6UTxQ: {
     longURL: "https://www.tsn.ca",
@@ -30,6 +31,7 @@ const urlDatabase = {
   }
 };
 
+//example usersDatabase
 const users = {
   "123": {
     id: "123",
@@ -43,44 +45,15 @@ const users = {
   }
 }
 
-function urlsForUser(id, urls) {
-  let userURL = {};
-  for (let url in urls) {
-    if (urls[url].userID === id) {
-      userURL[url] = {
-        longURL: urls[url].longURL
-      }
-    }
-  }
-  return userURL;
-}
 
-//check the users with email
-function existEmail(email, users) {
-  for (let user in users) {
-    if (email === users[user].email) {
-      return true;
-    }
-  }
-  return false;
-}
-
-//get a shorten URL string
-function generateRandomString() {
-  let strPool = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    + "0123456789"
-    + "abcdefghijklmnopqrstuvxyz";
-  let result = '';
-  for (let i = 0; i < 6; i++) {
-    let index = parseInt(strPool.length * Math.random());
-    result += strPool.charAt(index);
-  }
-  return result;
-}
-
-//get the home page show the hello
 app.get('/', (req, res) => {
-  res.send('Hello!')
+  const templateVars = {
+    user: users[req.session['user_id']]
+  }
+  if (templateVars.user) {
+    return res.redirect('/urls');
+  }
+  res.redirect('login');
 });
 
 app.get('/urls.json', (req, res) => {
@@ -107,7 +80,7 @@ app.get('/urls/new', (req, res) => {
     user: users[req.session['user_id']],
   };
   if (!templateVars.user) {
-    return res.redirect('/urls')
+    return res.redirect('/login')
   }
   return res.render('urls_new', templateVars);
 })
@@ -132,17 +105,31 @@ app.get('/urls/:shortURL', (req, res) => {
     user: users[req.session['user_id']]
   }
   if (templateVars.user) {
-    const userURL = urlsForUser(req.session['user_id'], urlDatabase)
-    templateVars.shortURL = req.params.shortURL;
-    templateVars.longURL = userURL[req.params.shortURL].longURL
-    return res.render('urls_show', templateVars);
+    if (urlDatabase[req.params.shortURL] && urlDatabase[req.params.shortURL].userID === templateVars.user.id) {
+      const userURL = urlsForUser(req.session['user_id'], urlDatabase)
+      templateVars.shortURL = req.params.shortURL;
+      templateVars.longURL = userURL[req.params.shortURL].longURL
+      return res.render('urls_show', templateVars);
+    } else {
+      return res.send('There is no such shortURL in your list!Please check')
+    }
   }
-
+  res.render('pleaseloginfirst', templateVars)
 })
 
 app.post('/urls/:shortURL', (req, res) => {
-  urlDatabase[req.params.shortURL].longURL = req.body.updatedURL;
-  return res.redirect('/urls');
+  const templateVars = {
+    user: users[req.session['user_id']]
+  }
+  if (templateVars.user) {
+    if (urlDatabase[req.params.shortURL].userID === templateVars.user.id) {
+      urlDatabase[req.params.shortURL].longURL = req.body.updatedURL;
+      return res.redirect('/urls');
+    } else {
+      return res.send('Sorry you dont have the URL in your list')
+    }
+  }
+  res.render('pleaseloginfirst', templateVars)
 })
 
 app.get('/u/:shortURL', (req, res) => {
@@ -153,8 +140,15 @@ app.get('/u/:shortURL', (req, res) => {
 })
 
 app.post('/urls/:shortURL/delete', (req, res) => {
-  delete urlDatabase[req.params.shortURL];
-  res.redirect('/urls');
+  const templateVars = {
+    user: users[req.session['user_id']]
+  }
+  if (templateVars.user) {
+    if (urlDatabase[req.params.shortURL].userID === templateVars.user.id) {
+      delete urlDatabase[req.params.shortURL];
+      res.redirect('/urls');
+    }
+  }
 })
 
 app.post('/login', (req, res) => {
